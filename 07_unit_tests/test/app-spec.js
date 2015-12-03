@@ -21,7 +21,7 @@ describe("Demo App", function(){
             assert( !isNaN(app.addTwoValues(10, 10)) );
         });
 
-        it("should set serverRunning boolean to true", function(done) {
+        it("should set serverRunning boolean to true", function() {
             setTimeout(function() {
                 assert(app.serverRunning);
                 done();

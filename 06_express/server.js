@@ -1,12 +1,26 @@
 // imports
-var express    = require("express");
-var path       = require("path");
+var express      = require("express");
+var path         = require("path");
+var mongojs      = require("mongojs");
+var session      = require("express-session");
+var cookieParser = require("cookie-parser");
 
 // routes
-var blogs      = require("./routes/blogs");
+var blogs        = require("./routes/blogs");
 
 // setup router and server
 var app = express();
+
+// setup for sessions and cookies
+app.use(cookieParser());
+app.use(session({
+    secret: '123456789',
+    resave: false,
+    saveUninitialized: true
+}));
+
+// setup render engine
+app.set('view engine', 'jade');
 
 // routes and middleware
 app.use(function(req, res, next) {
@@ -14,21 +28,46 @@ app.use(function(req, res, next) {
     next();
 });
 
-app.use("/home", function(req, res) {
-    res.send("<h1>Home</h1>");
+app.use("/index.html", function(req, res) {
+    console.log(req.session);
+    req.session.info = "HI";
+    res.render("home", {
+        pageTitle: "Welcome to blogger pro"
+    });
 });
 
-app.use("/about", function(req, res) {
-    res.send("<h1>About</h1>");
+// Blog routes
+function getDB() {
+    return mongojs("webapps", ["blogs"]);
+}
+
+app.use("/view_blogs/:id", function(req, res){
+    getDB().blogs.find({_id: mongojs.ObjectId(req.params.id)}, function(err, docs){
+        res.render("blog_details", {
+            pageTitle: "View Blog Details",
+            blog: docs[0]
+        });
+    });
 });
 
-app.use("/sayhello/:name/:other", function(req, res) {
-    res.send("Hi there "+req.params.name+" and "+req.params.other);
+app.use("/view_blogs", function(req, res){
+    getDB().blogs.find(function(err, docs){
+        res.render("blogs", {
+            pageTitle: "Current Blogs",
+            blogs: docs
+        });
+    });
 });
+
+
 
 // Send to blogs route for APIs
 app.use("/blogs", blogs);
 
+// client side frameworks [DEV ONLY]
+app.use("/jquery", express.static(path.join(__dirname, "bower_components/jquery/dist")) )
+
+// Static route for client side files
 app.use( express.static( path.join(__dirname, "public") ) );
 
 app.use("*", function (req, res) {
